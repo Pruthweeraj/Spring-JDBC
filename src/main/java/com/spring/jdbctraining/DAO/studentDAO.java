@@ -1,13 +1,12 @@
 package com.spring.jdbctraining.DAO;
 
-import java.util.List;
-
 import com.spring.jdbctraining.model.*;
+import rx.Observable;
 
 public interface studentDAO 
 {
 
-	public List<Student> getAllstudents();
+	public Observable<Student> getAllStudents();
 
 	public Student getOnestudents(int studentid);
 

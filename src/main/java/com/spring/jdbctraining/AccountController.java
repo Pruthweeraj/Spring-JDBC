@@ -1,7 +1,5 @@
 package com.spring.jdbctraining;
 
-import java.util.ArrayList;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,9 +19,7 @@ import org.springframework.web.servlet.ModelAndView;
 import com.spring.jdbctraining.DAO.StudentDAOImpl;
 import com.spring.jdbctraining.model.Student;
 
-import antlr.collections.List;
-
-import java.util.*;
+import java.util.List;
 
 
 @Controller
@@ -38,7 +34,7 @@ public class AccountController {
 	public ModelAndView show_users(Model model)
 	{
 
-		java.util.List<Student> students = studentImpl.getAllstudents();
+		List<Student> students = studentImpl.getAllStudents().toList().toBlocking().single();
 
 
 		ModelAndView modelAndView = new ModelAndView("home");
@@ -50,7 +46,7 @@ public class AccountController {
 	@RequestMapping(value = "/account.html", method = RequestMethod.GET)
 	public ModelAndView manage_account(Model model)
 	{
-		java.util.List<Student> students = studentImpl.getAllstudents();
+		java.util.List<Student> students = studentImpl.getAllStudents().toList().toBlocking().single();
 
 
 		ModelAndView modelAndView = new ModelAndView("account");
