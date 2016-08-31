@@ -38,9 +38,11 @@ CREATE TABLE IF NOT EXISTS `student` (
 --
 -- Dumping data for table `student`
 --
-
+DELETE FROM student;
 INSERT INTO `student` (`id`, `dob`, `email`, `mobno`, `name`, `password`) VALUES
-(1, '2015-01-15 02:09:32', 'hello@gmail.com', 2324, 'Tarunkumar', 'hellohello');
+  (1, '2015-01-15 02:09:32', 'hello@gmail.com', 2324, 'Tarunkumar', 'hellohello');
+INSERT INTO `student` (`id`, `dob`, `email`, `mobno`, `name`, `password`) VALUES
+  (2, '2015-01-15 02:09:32', 'hello2@gmail.com', 2324, 'Tarunkumar2', 'hellohello');
 
 --
 -- Indexes for dumped tables
