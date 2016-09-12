@@ -72,9 +72,12 @@ public class AccountController {
 
 
     @RequestMapping(value = "/submitupdateddata.html", method = RequestMethod.POST)
-    public String submit_updateddata(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
-        boolean bool = studentImpl.Updatestudents(student);
-        return "redirect:/account.html?success=true";
+    public DeferredResult<String> submit_updateddata(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
+        DeferredResult<String> deferredResult = new DeferredResult<>();
+        studentImpl.Updatestudents(student)
+                .subscribe(completed->deferredResult.setResult("redirect:/account.html?success=true"),
+                        error -> deferredResult.setErrorResult(error));
+        return deferredResult;
     }
 
 }

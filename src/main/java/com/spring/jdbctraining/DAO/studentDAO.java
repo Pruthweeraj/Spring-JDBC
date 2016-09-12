@@ -10,9 +10,9 @@ public interface studentDAO
 
 	public Student getOnestudents(int studentid);
 
-	public boolean saveStudents(Student student);
+	public Observable<Boolean> saveStudents(Student student);
 
-	public boolean Updatestudents(Student student);
+	public Observable<Boolean> Updatestudents(Student student);
 	
-	public boolean deletestudents(int studentid);
+	public Observable<Boolean> deletestudents(int studentid);
 }

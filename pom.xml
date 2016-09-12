@@ -14,10 +14,13 @@
         <org.slf4j-version>1.6.6</org.slf4j-version>
     </properties>
     <dependencies>
-        <dependency>
+        <dependency><!--
             <groupId>com.github.davidmoten</groupId>
             <artifactId>rxjava-jdbc</artifactId>
-            <version>0.7.3-SNAPSHOT</version>
+            <version>0.7.3-SNAPSHOT</version>-->
+            <groupId>com.github.alaisi.pgasync</groupId>
+            <artifactId>postgres-async-driver</artifactId>
+            <version>0.10-SNAPSHOT</version>
         </dependency>
 
         <dependency>
