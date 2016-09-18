@@ -14,10 +14,11 @@
         <org.slf4j-version>1.6.6</org.slf4j-version>
     </properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.github.davidmoten/rxjava-jdbc -->
         <dependency>
             <groupId>com.github.davidmoten</groupId>
             <artifactId>rxjava-jdbc</artifactId>
-            <version>0.7.3-SNAPSHOT</version>
+            <version>0.7.2</version>
         </dependency>
 
         <dependency>

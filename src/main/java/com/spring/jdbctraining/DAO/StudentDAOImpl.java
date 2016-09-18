@@ -18,7 +18,7 @@ import com.spring.jdbctraining.model.Student;
 import rx.Observable;
 
 @Service
-public class StudentDAOImpl implements studentDAO {
+public class StudentDAOImpl implements StudentDAO {
 
     @Autowired
     private DataSource dataSource;
