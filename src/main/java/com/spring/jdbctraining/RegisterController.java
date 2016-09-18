@@ -1,12 +1,8 @@
 package com.spring.jdbctraining;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -79,7 +75,7 @@ public class RegisterController {
 			return modelAndView;
 		}
 		
-		studentImpl.saveStudents(student);
+		studentImpl.saveStudent(student);
 		ModelAndView modelAndView = new ModelAndView("success");
 		return modelAndView;
 	}

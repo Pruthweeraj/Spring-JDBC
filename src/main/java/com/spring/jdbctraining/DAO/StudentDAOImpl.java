@@ -7,17 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
 
-import javax.inject.Provider;
+import java.util.function.Supplier;
 
 @Service
-public class StudentDAOImpl implements studentDAO {
+public class StudentDAOImpl implements StudentDAO {
+    private final Db db;
 
     @Autowired
-    private Provider<Db> dbProvider;
+    public StudentDAOImpl(Supplier<Db> dbProvider) {
+        this.db = dbProvider.get();
+    }
 
     @Override
     public Observable<Student> getAllStudents() {
-        return db()
+        return db
                 .queryRows("select id,name,password,email,mobno,dob from student")
                 .map(empRow -> {
                     Student emp = new Student();
@@ -33,24 +36,24 @@ public class StudentDAOImpl implements studentDAO {
     }
 
     @Override
-    public Student getOnestudents(int Studentid) {
+    public Student getStudent(int Studentid) {
         return getAllStudents().first().single().toBlocking().single();
     }
 
     @Override
-    public Observable<Boolean> saveStudents(Student student) {
+    public Observable<Boolean> saveStudent(Student student) {
         String query = "insert into student (id, name, password ,email,mobno ,dob) values (?,?,?,?,?,?)";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Boolean> Updatestudents(Student student) {
+    public Observable<Boolean> updateStudent(Student student) {
         String query = "update student set name=?, password=? , email=? , mobno=?,dob=?  where id=?";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Boolean> deletestudents(int studentid) {
+    public Observable<Boolean> deleteStudent(int studentid) {
         return dml("delete from student where id=?");
     }
 
@@ -60,15 +63,11 @@ public class StudentDAOImpl implements studentDAO {
     }
 
     private Observable<Boolean> dml(String query, Object... params) {
-        return db().begin().flatMap(transaction ->
+        return db.begin().flatMap(transaction ->
                 transaction.querySet(query, params)
                         .flatMap(resultSet -> transaction.commit())
                         .map(voidd -> true)
         ).onErrorResumeNext(Observable.just(false));
-    }
-
-    private Db db() {
-        return dbProvider.get();
     }
 
 }
