@@ -25,12 +25,12 @@ public class StudentDAOImpl implements StudentDAO {
                 .map(empRow -> {
                     Student emp = new Student();
                     int idx = 0;
-                    emp.setId(empRow.getInt(idx++));
+                    emp.setId(empRow.getLong(idx++));
                     emp.setName(empRow.getString(idx++));
-                    emp.setPassword(String.valueOf(empRow.getString(idx++)));
-                    emp.setEmail(String.valueOf(empRow.getString(idx++)));
-//                        emp.setMobno(Long.parseLong(empRow._5()));
-                    emp.setDob(empRow.getDate(idx++));
+//                    emp.setPassword(empRow.getString(idx++));
+//                    emp.setEmail(empRow.getString(idx++));
+//                    emp.setMobno(empRow.getLong(idx++));
+//                    emp.setDob(empRow.getDate(idx++));
                     return emp;
                 });
     }

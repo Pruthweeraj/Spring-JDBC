@@ -17,15 +17,14 @@
 /*!40101 SET NAMES utf8 */;
 
 --
--- Database: 'shopping'
+-- Database: shopping
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table 'student'
+-- Table structure for table student
 --
-DROP TABLE student;
 CREATE TABLE student (
   id SERIAL NOT NULL,
   dob date,
@@ -36,20 +35,18 @@ CREATE TABLE student (
 );
 
 --
--- Dumping data for table 'student'
+-- Dumping data for table student
 --
 DELETE FROM student;
-# INSERT INTO 'student' ('id', 'dob', 'email', 'mobno', 'name', 'password') VALUES
-#   (1, '2015-01-15 02:09:32', 'hello@gmail.com', 2324, 'Tarunkumar', 'hellohello');
-# INSERT INTO 'student' ('id', 'dob', 'email', 'mobno', 'name', 'password') VALUES
-#   (2, '2015-01-15 02:09:32', 'hello2@gmail.com', 2324, 'Tarunkumar2', 'hellohello');
+INSERT INTO student (id, dob, email, mobno, name, password) VALUES
+  (1, '2015-01-15 02:09:32', 'hello@gmail.com', 2324, 'Tarunkumar', 'hellohello');
 
 --
 -- Indexes for dumped tables
 --
 
 --
--- Indexes for table 'student'
+-- Indexes for table student
 --
-# ALTER TABLE 'student'
-#  ADD PRIMARY KEY ('id');
+# ALTER TABLE student
+#  ADD PRIMARY KEY (id);

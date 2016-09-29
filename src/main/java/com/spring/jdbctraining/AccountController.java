@@ -32,7 +32,7 @@ public class AccountController {
                     ModelAndView modelAndView = new ModelAndView("home");
                     modelAndView.addObject("students", students);
                     return modelAndView;
-                }).subscribe(modelAndView -> modelAndViewDeferredResult.setResult(modelAndView));
+                }).subscribe(modelAndView -> modelAndViewDeferredResult.setResult(modelAndView), error -> error.printStackTrace());
         return modelAndViewDeferredResult;
     }
 

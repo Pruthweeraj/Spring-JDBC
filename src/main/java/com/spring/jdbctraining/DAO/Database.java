@@ -14,7 +14,7 @@ public class Database implements Supplier<Db> {
         return new ConnectionPoolBuilder()
                 .hostname("localhost")
                 .port(5432)
-                .database("public")
+                .database("postgres")
                 .username("postgres")
                 .password("mysecretpassword")
                 .poolSize(2)
