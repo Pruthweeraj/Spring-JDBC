@@ -2,17 +2,17 @@ package com.spring.jdbctraining.DAO;
 
 import com.spring.jdbctraining.model.*;
 import rx.Observable;
+import rx.Single;
 
 public interface StudentDAO
 {
 	Observable<Student> getAllStudents();
 
-	//todo Observable<Student>
-	Student getStudent(int studentId);
+	Observable<Student> getStudent(int studentId);
 
-	Observable<Boolean> saveStudent(Student student);
+	Observable<Void> saveStudent(Student student);
 
-	Observable<Boolean> updateStudent(Student student);
+	Observable<Void> updateStudent(Student student);
 	
-	Observable<Boolean> deleteStudent(int studentId);
+	Observable<Void> deleteStudent(int studentId);
 }

@@ -28,6 +28,7 @@ public class StudentDAOImpl implements StudentDAO {
                     emp.setId(empRow.getLong(idx++));
                     emp.setName(empRow.getString(idx++));
 //                    emp.setPassword(empRow.getString(idx++));
+//                    idx++;
 //                    emp.setEmail(empRow.getString(idx++));
 //                    emp.setMobno(empRow.getLong(idx++));
 //                    emp.setDob(empRow.getDate(idx++));
@@ -36,38 +37,36 @@ public class StudentDAOImpl implements StudentDAO {
     }
 
     @Override
-    public Student getStudent(int Studentid) {
-        return getAllStudents().first().single().toBlocking().single();
+    public Observable<Student> getStudent(int studentId) {
+        return getAllStudents().first();
     }
 
     @Override
-    public Observable<Boolean> saveStudent(Student student) {
-        String query = "insert into student (id, name, password ,email,mobno ,dob) values (?,?,?,?,?,?)";
+    public Observable<Void> saveStudent(Student student) {
+        String query = "insert into student (id, name, password ,email,mobno ) values (?,?,?,?,?)";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Boolean> updateStudent(Student student) {
-        String query = "update student set name=?, password=? , email=? , mobno=?,dob=?  where id=?";
+    public Observable<Void> updateStudent(Student student) {
+        String query = "update student set name=?, password=? , email=? , mobno=?  where id=?";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Boolean> deleteStudent(int studentid) {
+    public Observable<Void> deleteStudent(int studentid) {
         return dml("delete from student where id=?");
     }
 
-    private Observable<Boolean> dml(String query, Student student) {
-        Object[] params = {student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno(), student.getDob()};
+    private Observable<Void> dml(String query, Student student) {
+        Object[] params = {student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno()/*, student.getDob()*/};
         return dml(query, params);
     }
 
-    private Observable<Boolean> dml(String query, Object... params) {
+    private Observable<Void> dml(String query, Object... params) {
         return db.begin().flatMap(transaction ->
                 transaction.querySet(query, params)
-                        .flatMap(resultSet -> transaction.commit())
-                        .map(voidd -> true)
-        ).onErrorResumeNext(Observable.just(false));
+                        .flatMap(resultSet -> transaction.commit()));
     }
 
 }
