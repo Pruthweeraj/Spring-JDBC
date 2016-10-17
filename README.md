@@ -38,6 +38,61 @@ Having a reactive framework like RxJava guide your processing pipelines can mean
 Finally, assume we have a multi-step processing pipeline. Switching one step from a synchronous IP to geo call in a local cache to calling a web service which would potentially travel the network,
 will remain just an implementation detail fo the method with type Function<IP,Observable<Geo>>. Nothing outside it needs to change or become aware of the asynchronous nature of the computation, the source of concurrency i.e. on which thread will the response be processed.
 
+
+Going back to the refactoring steps, the first one, to change signatures from
+ "List<Student> getStudents()",
+ which is an interface functionally identical (isomorphical to) to Supplier<List<Student>>,
+ to "Observable<Student> getStudents()" i.e. Supplier<Observable<Student>>,
+ and "Student getStudent"
+ which is an interface functionally identical (isomorphical to) to Supplier<Student>,
+ to "Observable<Student> getStudents()" i.e. Supplier<Observable<Student>>,
+ or to "Single<Student> getStudent()" i.e. Supplier<Single<Student>>,
+ is just meant to set the contracts (interfaces) between layers/components to reactive,
+ so that each one can evolve independently, in parallel teams, and not affecting the others.
+
+So a way of understanding this, is that inserting reactive paradigm can be done top-down, by wrapping big parts into a reactive envelope (API),
+and making the big parts interact reactively (in API, not in implementation), and then break down inside each boulder where development is more intense, or complexity higher, or more need for scalability exists.
+
+The second step, after simply converting return studentList to return Observable.of(studentList) is to use a reactive library to access the backend.
+Some databases like HBase have async clients which are non blocking (in the sense that no single I/O operation is blocking any thread, but some dedicated threads can poll on the status of hundreds of thousands of ongoing flows).
+Since JDBC is blocking by nature (since it returns an already populated ResultSet), even though there are libraries that provide an RxJava envelope to JDBC,
+for instance,  the JDBC will still block, but in potentially a different thread, as configured in the Rx Observable.
+So using an RxJava envelope of JDBC itself, allows for asincronicity in the main flow, but other threads will still be used to block on waiting for full answer from the database.
+This of course limits scalability to the same degree as the plain JDBC does, but you could plug this into a non blocking server like Vert.x (which is a Java equivalent for say NodeJS).
+
+The third step is to finally introduce a true reactive library. There are a few, even for relational databases, but you can find more when focusing on a specific database, such as Postgres.
+This is because the database access library is specific for each low level protocol of each database.
+Here we use postgres-async-driver project, which is using RxJava as an API of its library.
+
+Similarily to steps taken on the backend, the frontend meaning controller part also needs transforming, since classical Servlet and Spring MVC are blocking.
+However Servlet 3.0 and Servlet 3.1 take steps to async computation and even streaming.
+Spring covers those features in Spring MVC Async, which we already use in the project, namely the DeferredResult.
+Spring plans support for streaming in upcoming Spring Reactive Web, powered by Spring Reactor ecosystem.
+
+So given we have a studentDAO.getAllStudents() of type Observable<Student>, here is how we transform it and in the end we subscribe to it in a way
+that allows us to chain the result back into the DeferredResult, the async object Spring MVC provides.
+
+    @RequestMapping(value = "/student.html", method = RequestMethod.GET)
+    public DeferredResult<ModelAndView> show_users(Model model) {
+        return deferredStudentsView("home");
+    }
+
+    private DeferredResult<ModelAndView> deferredStudentsView(String view) {
+        return toDeferredResult(studentDAO.getAllStudents()
+                .toList()
+                .map(students -> {
+                    ModelAndView modelAndView = new ModelAndView(view);
+                    modelAndView.addObject("students", students);
+                    return modelAndView;
+                }));
+    }
+    public static  <T> DeferredResult<T> toDeferredResult(Observable<T> observable) {
+        DeferredResult<T> deferredResult = new DeferredResult<>();
+        observable.subscribe(result -> deferredResult.setResult(result), e -> deferredResult.setErrorResult(e));
+        return deferredResult;
+    }
+
+
 To run the app
 
 docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
