@@ -42,31 +42,33 @@ public class StudentDAOImpl implements StudentDAO {
     }
 
     @Override
-    public Observable<Void> saveStudent(Student student) {
+    public Observable<Long> saveStudent(Student student) {
         String query = "insert into student (id, name, password ,email,mobno ) values (?,?,?,?,?)";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Void> updateStudent(Student student) {
+    public Observable<Long> updateStudent(Student student) {
         String query = "update student set name=?, password=? , email=? , mobno=?  where id=?";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Void> deleteStudent(int studentid) {
+    public Observable<Long> deleteStudent(int studentid) {
         return dml("delete from student where id=?");
     }
 
-    private Observable<Void> dml(String query, Student student) {
+    private Observable<Long> dml(String query, Student student) {
         Object[] params = {student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno()/*, student.getDob()*/};
         return dml(query, params);
     }
 
-    private Observable<Void> dml(String query, Object... params) {
+    private Observable<Long> dml(String query, Object... params) {
         return db.begin().flatMap(transaction ->
                 transaction.querySet(query, params)
-                        .flatMap(resultSet -> transaction.commit()));
+                        .flatMap(resultSet -> transaction.commit().map(__ -> resultSet.iterator().next().getLong(0))
+                                .doOnError(e-> transaction.rollback()))
+        );
     }
 
 }

@@ -92,6 +92,39 @@ that allows us to chain the result back into the DeferredResult, the async objec
         return deferredResult;
     }
 
+The next step is to stream the students json to the browser, creating the pipe from database to browser. In micro services, it could be a pipe through a chain od nodes.
+We can introduce Vert.x, a web server in Java which supports streaming, and has compatibility with RxJava even.
+Note that now we step out of Servlet world. There are also classic containers like Jetty which have direct API, not just servlet.
+
+Another next step is update operations, and even transactions.
+
+Here is how a transaction would look like:
+
+private Observable<Long> dml(String query, Object... params) {
+        return db.begin().flatMap(transaction ->
+                transaction.querySet(query, params)
+                        .flatMap(resultSet -> transaction.commit().map(__ -> resultSet.iterator().next().getLong(0)))
+                        .doOnError(e-> transaction.rollback())
+        );
+    }
+
+This is a single-statement transaction, but it illustrates how you can do transactions in an async reactive API.
+Both transaction begin, and commit, or rollback, are monadic functions: they return an Observable and they can be chained with flatMap.
+Let's follow the example above. first, the signature. The dml (data modification language statement) execution function, takes a DML statement (like an UPDATE, or INSERT),
+and their parameters, if any, and "schedules" it for execution.
+First we notice that db.begin returns Observable<Transaction>. The transaction is not created right away, because it involves I/O with the database.
+So this is an asynchronous operation, that when completed returns a transaction object on which commit or rollback can be called at the right time.
+This transaction object will be passed from java closure to java closure, as we see above: first, transaction is available as an argument to flatmap.
+ There it is used in two spots: first to launch the DML statement itself within the transaction.
+ But then, the result of querySet which executes the DML, is also an Observable.
+ This Observable, holding the result of the DML (like, a Row with updated rows count), is further transformed with flatMap,
+ to another observable. It is there, in this second flatMap, that transaction object is once again used to commit the transaction.
+ There, the transaction variable is closed over by the lambda function given as argument to this second flatMap.
+ This is the manner in which you can send data from one part of an async flow to the other, since we do not have a thread, but we still have lexical scope.
+If successful, the transaction commit result will be transformed back to the update count, which can be used by callers.
+Here we cannot close over the result count, since the called is not in the same lexical scope with us here, so we need to encapsulate the result as the data type of the resulting observable.
+If we need to carry multiple results, tuples are available in some languages, but in Java we have them in libraries.
+On error, rollback is called. The error bubbles up further. It could be swallowed as well, but we choose not to, here.
 
 To run the app
 
