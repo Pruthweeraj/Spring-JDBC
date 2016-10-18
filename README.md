@@ -125,6 +125,21 @@ If successful, the transaction commit result will be transformed back to the upd
 Here we cannot close over the result count, since the called is not in the same lexical scope with us here, so we need to encapsulate the result as the data type of the resulting observable.
 If we need to carry multiple results, tuples are available in some languages, but in Java we have them in libraries.
 On error, rollback is called. The error bubbles up further. It could be swallowed as well, but we choose not to, here.
+This is the second closure where transaction variable is used. The variable has to be effectively immutable to do so.
+
+This manner of capturing results can result in a very nested expression, a closure in closure in closure, transformation in transformation in yet another one.
+Languages like Scala and Haskell have library or language constructs to flatten this. The "do" construct in Haskell, or the for comprehension in Scala aim to allow such a chaining go smooth and flat.
+
+ In Haskell it would look like this:
+ do
+    transaction <- db.begin
+    resultSet <- transaction.querySet(query)
+    commitSignal <- transaction.commit
+    return resultSet.getcount
+
+ You can see that any variable created along the way is accesible in the lexical scope, but the structure remains flat.
+ I do not know an equivalent in Java, but I am searching for it.
+
 
 To run the app
 
