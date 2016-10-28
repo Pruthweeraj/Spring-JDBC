@@ -140,6 +140,60 @@ Languages like Scala and Haskell have library or language constructs to flatten 
  You can see that any variable created along the way is accesible in the lexical scope, but the structure remains flat.
  I do not know an equivalent in Java, but I am searching for it.
 
+In reactive world we aim to bring a blocking application to a non-blocking state.
+A blocking application is one that when doing I/O, like opening a TCP connection, blocks the thread.
+Most of the initial Java APIs for opening sockets, talking to databases (JDBC), file/inputStream/outputStream, all were blocking APIs.
+The same about initial versions of Servlet API, and most things in Java were like that.
+Certain things started to change, like Servlet 3.x integrated a few concepts like async and streaming.
+But in a typical J2EE application, one would typically find blocking calls, which is not always a bad thing.
+Blocking semantics is easier to understand than explicit async API.
+Some languages like C#, Scala and Haskell have constructs that transparently generate non blocking implementations from a blocking code.
+Such as the async high order function in C# and Scala.
+With Java, to my knowledge, the most advanced way to do things non blocking is with Reactive Streams or RxJava 1.0 (since RxJava 2.0 is already implementing Reactive Streams)
+and with non blocking libraries such as Netty.
+However things remain pretty explicit, so the entry barrier can be higher.
+Still, when you need to support more concurrent users than the number of threads, or when you want to minimize costs and your application is I/O-bound,
+then doing things non blocking will get your extra order of magnitude in scalability and elasticity and in cost reduction.
+An application is I/O bound if doing I/O is the bottleneck, and CPU-bound if that is the bottleneck.
+When discussing elasticity or robustness, the most impactful way to think about it is the moment where all your threads are waiting for I/O.
+A modern JVM can withstand 5000 threads let's say. This means that when 5000 calls to various web services are waiting on the respective threads, in a blocking application,
+simply no more user requests can be executed at that stage (they can only be enqueued for later processing by some specialized threads doing just enqueing).
+That can be fine in a controlled context, such as a corporate intranet, but is for sure not what a startup needs when suddenly 10 times more users check out their product.
+Of course one complementary solution to traffic spikes is horizontal scalability, bringing up more servers, but that is not elastic enough, not to mention costs.
+Again, it all depends on the kind of I/O an application does. But even if the HTTP is the only potentially-slow I/O an internet service is exposed to,
+and all the other I/O ops are with internal databases and services which are HA (highly available) and low latency, then at least HTTP will move bytes slowly with a slow client on the other side of the planet.
+It is true that this problem is taken care by professional load balancers.
+But the other thing is you never know when the most "highly available" internal or external service goes down, and when the most "low latency" service is actually "near-realtime" not hard-realtime, and at that moment it will just respond slow because of garbage collecting.
+Then if you are blocking in only parts of your stack, there will be a blocking bubble:
+which means that threads will start blocking on the slowest blocking I/O and bring resources to a halt because of a single slow blocking access which is requested by 5% of the traffic and has low business importance.
+
+Now that I convinced you that making an application non blocking is worth it in some situations,
+lets' look at our legacy application.
+It is blocking in all its layers, in HTTP, in database access, so let's start from this.
+Unless all the layers on a vertical (here HTTP and database access) are being made async, the full flow cannot be async.
+There is also a difference between async and non blocking in that while non blocking implies async (unless we have language constructs),
+async can be always done for blocking call by simply "moving" it to a different thread.
+This has some of the same issues as the initial blocking solution but can be a step towards the end goal, in an incremental approach.
+For the HTTP side, we are already half-covered by current state of Servlet and Spring MVC.
+Meaning we have async behavior, but not streaming.
+What does it mean async behavior? It means that when the database has finished responding, the processing kicks in.
+When processing is finished, the web layer kicks in, rendering stuff.
+When the web page is rendered (or the JSON payload), the HTTP layer is call with "here, your full response payload".
+The next step would be streaming: when the database tells processing layer "here, some more data for you", processing layer takes it.
+This "takes it" does not imply dedicated thread, if using NIO ways, or, say in Linux, epoll.
+Here the idea is that 100K connections are being queried by a single thread to the OS with the questions "anything new on the 100K connections?".
+Then the processing layer can do a transformation that outputs more semantic units, like "students".
+It may be useful sometimes, if the data from the database represents just part of the student, to keep the partial info in the processing layer buffers.
+When a data bulk from the db finally has all the data on that student, it can be "closed" and sent to the upper layer, rendering.
+In such a pipeline, any component can stream at any granularity: some will just copy bytes from left to right, while others will send full student instances or even batches of them,
+while others, like the DefferableResult of MVC Spring Async, will need to whole result before starting to write an HTTP response.
+
+If a single component in your pipeline is waiting for the whole result, it is best to gather all your data in the layer which consumes the smallest amount of memory, if that is your concern.
+Otherwise, let it flow to the first wait-all component. That will naturally "block" the whole stream until it processed all of it and pass it up when a new stream happens.
+The advantage of streaming all the way (when all the components, from HTTP to database, in our simple example, are streaming to the level/granularity say of sayy batches of 1000 students, not more),
+then the application is more elastic since it consumes a limited amount of memory per request, and even a constant amount of it!
+
+
 
 To run the app
 
