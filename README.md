@@ -193,7 +193,16 @@ Otherwise, let it flow to the first wait-all component. That will naturally "blo
 The advantage of streaming all the way (when all the components, from HTTP to database, in our simple example, are streaming to the level/granularity say of sayy batches of 1000 students, not more),
 then the application is more elastic since it consumes a limited amount of memory per request, and even a constant amount of it!
 
-
+So back to the steps of refactoring,
+1. Put Observable in signatures
+2. set observable.subscribeOn and observable.observeOn(scheduler) to move blocking computations (e.g. JDBC calls) to a different thread pool
+3. Make it async: use Spring MVC async
+4. Make the backend non-blocking: use a specialized library for your database that implements a non blocking alternate implementation
+4'. Wrap that non blocking implementation in RxJava or your preferred reactive framework, if not already wrapped in it, like in our case
+5. Make it streaming: use Vert.x
+6. Do the writes
+7. Do the (multi-statement) transactions
+8. Maybe some error handling
 
 To run the app
 
