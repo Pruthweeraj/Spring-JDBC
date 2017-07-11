@@ -63,7 +63,7 @@ public class StudentServiceImpl implements StudentService {
         return getStudentObservable()
                 .toList().map(list -> list.size())
                 .doOnNext(c -> LOGGER.info("Got " + c + " students"))
-                .ignoreElements().cast(Student.class)
+                .toCompletable().<Student>toObservable()
                 .concatWith(Observable.defer(() -> getStudentObservable()));
     }
 
@@ -100,10 +100,7 @@ public class StudentServiceImpl implements StudentService {
     private <T> Observable<T> commit(Transaction transaction, Observable<T> decoratedObservable) {
         return decoratedObservable
                 .doOnCompleted(() -> LOGGER.info("Committing"))
-                .concatWith(Observable.defer(() ->
-                        transaction.commit()
-                                .ignoreElements()
-                                .map(__ -> (T) null)))
+                .concatWith(Observable.defer(() -> transaction.commit().toCompletable().toObservable()))
                 .doOnCompleted(() -> LOGGER.info("Committed"))
                 .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e));
     }
@@ -113,29 +110,9 @@ public class StudentServiceImpl implements StudentService {
                 .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e))
                 .onErrorResumeNext(e -> Observable.defer(() ->
                         transaction.rollback()
-                                .ignoreElements()
+                                .toCompletable().<T>toObservable()
                                 .doOnCompleted(() -> LOGGER.info("Rolled back"))
-                                .concatWith(Observable.error(e))
-                                .map(__ -> (T) null)));
+                                .concatWith(Observable.error(e))));
     }
-/*
-    private <T> Observable<T> commit(Transaction transaction, Observable<T> decoratedCompletable) {
-        return decoratedCompletable
-                .doOnCompleted(() -> LOGGER.info("Committing"))
-                .concatWith(Observable.defer(() -> transaction.commit()))
-                .doOnCompleted(() -> LOGGER.info("Committed"))
-                .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e));
-    }
-
-    private Completable rollback(Transaction transaction, Completable decoratedCompletable) {
-        return decoratedCompletable
-                .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e))
-                .onErrorResumeNext(e ->
-                        Observable.defer(() ->
-                                transaction.rollback()
-                                        .doOnCompleted(() -> LOGGER.info("Rolled back"))
-                                        .concatWith(Observable.error(e)))
-                                .toCompletable());
-    }*/
 
 }
