@@ -6,7 +6,10 @@ import com.spring.jdbctraining.model.Student;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import rx.Completable;
 import rx.Observable;
+
+import java.util.Arrays;
 
 @Service
 public class StudentDAOImpl implements StudentDAO {
@@ -34,34 +37,31 @@ public class StudentDAOImpl implements StudentDAO {
     }
 
     @Override
-    public Observable<Void> saveStudent(Transaction transaction, Student student) {
-        String query = "insert into student (id, name, password, email, mobno) values ($1,$2,$3,$4,$5)";
-        return dml(transaction, query, student);
+    public Completable saveStudent(Transaction transaction, Student student) {
+        return dml(transaction, "insert into student (id, name, password, email, mobno) values ($1,$2,$3,$4,$5)", student);
     }
 
     @Override
-    public Observable<Void> updateStudent(Transaction transaction, Student student) {
+    public Completable updateStudent(Transaction transaction, Student student) {
         return dml(transaction, "update student set name=$2, password=$3, email=$4, mobno=$5 where id=$1", student);
     }
 
     @Override
-    public Observable<Void> deleteStudent(Transaction transaction, int studentId) {
-        return dml(transaction, "delete from student where id=$1").cast(Void.class);
+    public Completable deleteStudent(Transaction transaction, int studentId) {
+        return dml(transaction, "delete from student where id=$1");
     }
 
-    private Observable<Void> dml(Transaction transaction, String query, Student student) {
+    private Completable dml(Transaction transaction, String query, Student student) {
         return dml(transaction, query, toParams(student));
+    }
+
+    private Completable dml(Transaction transaction, String query, Object... params) {
+        LOGGER.info("Sending query={} with params={}", query, Arrays.asList(params));
+        return transaction.querySet(query, params).toCompletable();
     }
 
     private Object[] toParams(Student student) {
         return new Object[]{student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno()/*, student.getDob()*/};
-    }
-
-    private Observable<Void> dml(Transaction transaction, String query, Object... params) {
-        return
-                transaction.querySet(query, params)
-                        .ignoreElements()
-                        .map(__ -> null);
     }
 
 }

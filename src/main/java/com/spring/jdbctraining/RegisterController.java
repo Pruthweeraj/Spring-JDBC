@@ -42,12 +42,14 @@ public class RegisterController {
 
     @RequestMapping(value = "/submitregister.html", method = RequestMethod.POST)
     public DeferredResult<ModelAndView> submitregister(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
-        Observable<ModelAndView> observable = result.hasErrors() ?
-                Observable.just(new ModelAndView("register")) :
-                studentImpl.saveStudent(student)
-                        .map(studentt -> new ModelAndView("success"));
         DeferredResult<ModelAndView> deferredResult = new DeferredResult<>();
-        observable.subscribe(result1 -> deferredResult.setResult(result1), e -> deferredResult.setErrorResult(e));
+        if (result.hasErrors()) {
+            deferredResult.setResult(new ModelAndView("register"));
+        } else {
+            studentImpl.saveStudent(student)
+                    .doOnCompleted(() -> deferredResult.setResult(new ModelAndView("success")))
+                    .subscribe();
+        }
         return deferredResult;
     }
 

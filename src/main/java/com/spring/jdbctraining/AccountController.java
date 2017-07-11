@@ -52,7 +52,7 @@ public class AccountController {
     @RequestMapping(value = "/remove/{id}.html", method = RequestMethod.GET)
     public DeferredResult<String> manage_account_remove(@PathVariable("id") Integer id, Model model) {
         Observable<String> observable = studentService.deleteStudent(id)
-                .take(1)
+                .toObservable().concatWith(Observable.just(null))
                 .map(signal -> "redirect:/account.html?success=true");
         DeferredResult<String> deferredResult = new DeferredResult<>();
         observable.subscribe(result -> deferredResult.setResult(result), e -> deferredResult.setErrorResult(e));
@@ -76,6 +76,7 @@ public class AccountController {
     public DeferredResult<String> submit_updateddata(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
         DeferredResult<String> deferredResult = new DeferredResult<>();
         studentService.updateStudent(student)
+                .toObservable()
                 .subscribe(completed -> deferredResult.setResult("redirect:/account.html?success=true"),
                         error -> deferredResult.setErrorResult(error));
         return deferredResult;

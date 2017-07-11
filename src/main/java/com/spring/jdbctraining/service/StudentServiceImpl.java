@@ -8,11 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import rx.Completable;
 import rx.Observable;
-import rx.functions.Func1;
 
 import java.util.Date;
-import java.util.Random;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Service
@@ -29,46 +29,51 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Observable<Student> getAllStudents() {
-        return transactionalWork(transaction -> studentDAO.getAllStudents(transaction));
+        return transactionalObservable(transaction -> studentDAO.getAllStudents(transaction));
     }
 
 
     @Override
     public Observable<Student> getStudent(int studentId) {
-        return transactionalWork(transaction -> studentDAO.getStudent(transaction, studentId));
+        return transactionalObservable(transaction -> studentDAO.getStudent(transaction, studentId));
     }
 
     @Override
-    public Observable<Void> saveStudent(Student student) {
-        return transactionalWork(transaction -> studentDAO.saveStudent(transaction, student));
+    public Completable saveStudent(Student student) {
+        return transactionalCompletable(transaction -> studentDAO.saveStudent(transaction, student));
     }
 
     @Override
-    public Observable<Void> updateStudent(Student student) {
-        return transactionalWork(transaction -> studentDAO.updateStudent(transaction, student));
+    public Completable updateStudent(Student student) {
+        return transactionalCompletable(transaction -> studentDAO.updateStudent(transaction, student));
     }
 
     @Override
-    public Observable<Void> deleteStudent(int studentId) {
-        return transactionalWork(transaction -> studentDAO.deleteStudent(transaction, studentId));
+    public Completable deleteStudent(int studentId) {
+        return transactionalCompletable(transaction -> studentDAO.deleteStudent(transaction, studentId));
+    }
+
+    private Completable transactionalCompletable(Function<Transaction, Completable> actionToCompletable) {
+        Function<Transaction, Observable<Void>> actionToObservable = transaction -> actionToCompletable.apply(transaction).toObservable();
+        return transactionalObservable(actionToObservable).toCompletable();
     }
 
     @Override
     public Observable<Student> createStudentsAndGetAllStudents() {
         return getStudentObservable()
-                .toList().map(list->list.size())
-                .doOnNext(c->LOGGER.info("Got "+c+" students"))
+                .toList().map(list -> list.size())
+                .doOnNext(c -> LOGGER.info("Got " + c + " students"))
                 .ignoreElements().cast(Student.class)
-                .concatWith(Observable.defer(()->getStudentObservable()));
+                .concatWith(Observable.defer(() -> getStudentObservable()));
     }
 
     private Observable<Student> getStudentObservable() {
-        return transactionalWork(transaction -> {
+        return transactionalObservable(transaction -> {
             Observable<Student> firstStudent =
                     studentDAO.saveStudent(transaction, newStudent())
-                            .cast(Student.class)
+                            .<Student>toObservable()
                             .concatWith(Observable.defer(() -> studentDAO.getAllStudents(transaction)));
-           return firstStudent;
+            return firstStudent;
         });
     }
 
@@ -79,27 +84,17 @@ public class StudentServiceImpl implements StudentService {
         student.setId(21L);
         student.setMobno(12341223L);
         student.setName("nicu marasiou");
-//        student.set
         return student;
     }
 
-    @FunctionalInterface
-    interface TransactionalActivity<T> extends Func1<Transaction, Observable<T>> {
-//        Observable<T> action(Transaction transaction);
-    }
-
-    private <T> Observable<T> transactionalWork(TransactionalActivity<T> activity) {
+    private <T> Observable<T> transactionalObservable(Function<Transaction, Observable<T>> activity) {
         return database.begin()
-                .flatMap(transaction ->
-                        activity.call(transaction)
-                                .compose(commitOrRollback(transaction)));
-    }
-
-    private <T> Observable.Transformer<T, T> commitOrRollback(Transaction transaction) {
-        return origObservable ->
-                origObservable
-                        .compose(obs -> commit(transaction, obs))
-                        .compose(obs -> rollback(transaction, obs));
+                .flatMap(transaction -> {
+                    Observable<T> decoratedObservable = activity.apply(transaction);
+                    Observable<T> commitCompletable = commit(transaction, decoratedObservable);
+                    Observable<T> rollbackCompletable = rollback(transaction, commitCompletable);
+                    return rollbackCompletable;
+                });
     }
 
     private <T> Observable<T> commit(Transaction transaction, Observable<T> decoratedObservable) {
@@ -123,5 +118,24 @@ public class StudentServiceImpl implements StudentService {
                                 .concatWith(Observable.error(e))
                                 .map(__ -> (T) null)));
     }
+/*
+    private <T> Observable<T> commit(Transaction transaction, Observable<T> decoratedCompletable) {
+        return decoratedCompletable
+                .doOnCompleted(() -> LOGGER.info("Committing"))
+                .concatWith(Observable.defer(() -> transaction.commit()))
+                .doOnCompleted(() -> LOGGER.info("Committed"))
+                .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e));
+    }
+
+    private Completable rollback(Transaction transaction, Completable decoratedCompletable) {
+        return decoratedCompletable
+                .doOnError(e -> LOGGER.warn("Error during transaction (rolling back)", e))
+                .onErrorResumeNext(e ->
+                        Observable.defer(() ->
+                                transaction.rollback()
+                                        .doOnCompleted(() -> LOGGER.info("Rolled back"))
+                                        .concatWith(Observable.error(e)))
+                                .toCompletable());
+    }*/
 
 }
