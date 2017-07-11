@@ -3,6 +3,8 @@ package com.spring.jdbctraining.DAO;
 
 import com.github.pgasync.Db;
 import com.spring.jdbctraining.model.Student;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
@@ -11,28 +13,25 @@ import java.util.function.Supplier;
 
 @Service
 public class StudentDAOImpl implements StudentDAO {
-    private final Db db;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(StudentDAOImpl.class);
+    private final Db database;
 
     @Autowired
     public StudentDAOImpl(Supplier<Db> dbProvider) {
-        this.db = dbProvider.get();
+        this.database = dbProvider.get();
     }
 
     @Override
     public Observable<Student> getAllStudents() {
-        return db
+        return database
                 .queryRows("select id,name,password,email,mobno,dob from student")
-                .map(empRow -> {
-                    Student emp = new Student();
+                .map(row -> {
+                    Student student = new Student();
                     int idx = 0;
-                    emp.setId(empRow.getLong(idx++));
-                    emp.setName(empRow.getString(idx++));
-//                    emp.setPassword(empRow.getString(idx++));
-//                    idx++;
-//                    emp.setEmail(empRow.getString(idx++));
-//                    emp.setMobno(empRow.getLong(idx++));
-//                    emp.setDob(empRow.getDate(idx++));
-                    return emp;
+                    student.setId(row.getLong(idx++));
+                    student.setName(row.getString(idx));
+                    return student;
                 });
     }
 
@@ -42,33 +41,44 @@ public class StudentDAOImpl implements StudentDAO {
     }
 
     @Override
-    public Observable<Long> saveStudent(Student student) {
-        String query = "insert into student (id, name, password ,email,mobno ) values (?,?,?,?,?)";
+    public Observable<Void> saveStudent(Student student) {
+        String query = "insert into student (id, name, password, email, mobno) values ($1,$2,$3,$4,$5)";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Long> updateStudent(Student student) {
-        String query = "update student set name=?, password=? , email=? , mobno=?  where id=?";
+    public Observable<Void> updateStudent(Student student) {
+        String query = "update student set name=$2, password=$3, email=$4, mobno=$5 where id=$1";
+        return database.querySet(query, toParams(student)).cast(Void.class);
+    }
+//    @Override
+    public Observable<Void> updateStudentInExplicitTransaction(Student student) {
+        String query = "update student set name=$2, password=$3, email=$4, mobno=$5 where id=$1";
         return dml(query, student);
     }
 
     @Override
-    public Observable<Long> deleteStudent(int studentid) {
-        return dml("delete from student where id=?");
+    public Observable<Void> deleteStudent(int studentId) {
+        return dml("delete from student where id=$1").cast(Void.class);
     }
 
-    private Observable<Long> dml(String query, Student student) {
-        Object[] params = {student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno()/*, student.getDob()*/};
-        return dml(query, params);
+    private Observable<Void> dml(String query, Student student) {
+        return dml(query, toParams(student));
     }
 
-    private Observable<Long> dml(String query, Object... params) {
-        return db.begin().flatMap(transaction ->
-                transaction.querySet(query, params)
-                        .flatMap(resultSet -> transaction.commit().map(__ -> resultSet.iterator().next().getLong(0))
-                                .doOnError(e-> transaction.rollback()))
-        );
+    private Object[] toParams(Student student) {
+        return new Object[]{student.getId(), student.getName(), student.getPassword(), student.getEmail(), student.getMobno()/*, student.getDob()*/};
+    }
+
+    private Observable<Void> dml(String query, Object... params) {
+        return database.begin()
+                .flatMap(transaction ->
+                        transaction.querySet(query, params)
+                                .flatMap(resultSet -> transaction.commit())
+                                .doOnError(e -> {
+                                    LOGGER.warn("Error during transaction (rolling back)", e);
+                                    transaction.rollback();
+                                }));
     }
 
 }

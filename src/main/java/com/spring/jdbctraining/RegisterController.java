@@ -1,7 +1,6 @@
 package com.spring.jdbctraining;
 
 import java.util.Locale;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -20,8 +19,6 @@ import com.spring.jdbctraining.DAO.StudentDAOImpl;
 import com.spring.jdbctraining.model.Student;
 import com.spring.jdbctraining.model.StudentNameEditor;
 import rx.Observable;
-
-import static com.spring.jdbctraining.AccountController.toDeferredResult;
 
 @Controller
 public class RegisterController {
@@ -44,10 +41,13 @@ public class RegisterController {
 
     @RequestMapping(value = "/submitregister.html", method = RequestMethod.POST)
     public DeferredResult<ModelAndView> submitregister(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
-        return toDeferredResult(result.hasErrors() ?
+        Observable<ModelAndView> observable = result.hasErrors() ?
                 Observable.just(new ModelAndView("register")) :
                 studentImpl.saveStudent(student)
-                        .map(studentt -> new ModelAndView("success")));
+                        .map(studentt -> new ModelAndView("success"));
+        DeferredResult<ModelAndView> deferredResult = new DeferredResult<>();
+        observable.subscribe(result1 -> deferredResult.setResult(result1), e -> deferredResult.setErrorResult(e));
+        return deferredResult;
     }
 
     @InitBinder

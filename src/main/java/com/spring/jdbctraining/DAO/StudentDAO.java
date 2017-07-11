@@ -10,9 +10,9 @@ public interface StudentDAO
 
 	Observable<Student> getStudent(int studentId);
 
-	Observable<Long> saveStudent(Student student);
+	Observable<Void> saveStudent(Student student);
 
-	Observable<Long> updateStudent(Student student);
+	Observable<Void> updateStudent(Student student);
 	
-	Observable<Long> deleteStudent(int studentId);
+	Observable<Void> deleteStudent(int studentId);
 }
