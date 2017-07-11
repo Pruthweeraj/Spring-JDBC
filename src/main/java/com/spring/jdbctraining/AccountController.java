@@ -1,7 +1,7 @@
 package com.spring.jdbctraining;
 
-import com.spring.jdbctraining.DAO.StudentDAO;
 import com.spring.jdbctraining.model.Student;
+import com.spring.jdbctraining.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,11 +19,11 @@ import rx.Observable;
 @Controller
 public class AccountController {
     @Autowired
-    public StudentDAO studentDAO;
+    public StudentService studentService;
 
     @RequestMapping(value = "/student.html", method = RequestMethod.GET)
     public DeferredResult<ModelAndView> showStudents(Model model) {
-        Observable<ModelAndView> observable = studentDAO.getAllStudents()
+        Observable<ModelAndView> observable = studentService.getAllStudents()
                 .toList()
                 .map(students -> {
                     ModelAndView modelAndView = new ModelAndView("home");
@@ -37,7 +37,7 @@ public class AccountController {
 
     @RequestMapping(value = "/account.html", method = RequestMethod.GET)
     public DeferredResult<ModelAndView> manage_account(Model model) {
-        Observable<ModelAndView> observable = studentDAO.getAllStudents()
+        Observable<ModelAndView> observable = studentService.getAllStudents()
                 .toList()
                 .map(students -> {
                     ModelAndView modelAndView = new ModelAndView("account");
@@ -51,7 +51,7 @@ public class AccountController {
 
     @RequestMapping(value = "/remove/{id}.html", method = RequestMethod.GET)
     public DeferredResult<String> manage_account_remove(@PathVariable("id") Integer id, Model model) {
-        Observable<String> observable = studentDAO.deleteStudent(id)
+        Observable<String> observable = studentService.deleteStudent(id)
                 .take(1)
                 .map(signal -> "redirect:/account.html?success=true");
         DeferredResult<String> deferredResult = new DeferredResult<>();
@@ -61,7 +61,7 @@ public class AccountController {
 
     @RequestMapping(value = "/update/{id}.html", method = RequestMethod.GET)
     public DeferredResult<ModelAndView> manage_account_update(@PathVariable("id") Integer id, Model model) {
-        Observable<ModelAndView> observable = studentDAO.getStudent(id)
+        Observable<ModelAndView> observable = studentService.getStudent(id)
                 .map(student -> {
                     ModelAndView modelAndView = new ModelAndView("account");
                     modelAndView.addObject("studentdata", student);
@@ -75,7 +75,7 @@ public class AccountController {
     @RequestMapping(value = "/submitupdateddata.html", method = RequestMethod.POST)
     public DeferredResult<String> submit_updateddata(@Validated @ModelAttribute("student1") Student student, BindingResult result) {
         DeferredResult<String> deferredResult = new DeferredResult<>();
-        studentDAO.updateStudent(student)
+        studentService.updateStudent(student)
                 .subscribe(completed -> deferredResult.setResult("redirect:/account.html?success=true"),
                         error -> deferredResult.setErrorResult(error));
         return deferredResult;

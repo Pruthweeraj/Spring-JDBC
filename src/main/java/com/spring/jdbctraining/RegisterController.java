@@ -2,6 +2,7 @@ package com.spring.jdbctraining;
 
 import java.util.Locale;
 
+import com.spring.jdbctraining.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,7 +24,7 @@ import rx.Observable;
 @Controller
 public class RegisterController {
     @Autowired
-    public StudentDAOImpl studentImpl;
+    private StudentService studentImpl;
 
     /**
      * Simply selects the home view to render by returning its name.

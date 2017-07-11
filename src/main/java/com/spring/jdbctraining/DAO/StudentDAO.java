@@ -1,18 +1,19 @@
 package com.spring.jdbctraining.DAO;
 
+import com.github.pgasync.Transaction;
 import com.spring.jdbctraining.model.*;
 import rx.Observable;
 import rx.Single;
 
 public interface StudentDAO
 {
-	Observable<Student> getAllStudents();
+	Observable<Student> getAllStudents(Transaction transaction);
 
-	Observable<Student> getStudent(int studentId);
+	Observable<Student> getStudent(Transaction transaction, int studentId);
 
-	Observable<Void> saveStudent(Student student);
+	Observable<Void> saveStudent(Transaction transaction, Student student);
 
-	Observable<Void> updateStudent(Student student);
+	Observable<Void> updateStudent(Transaction transaction, Student student);
 	
-	Observable<Void> deleteStudent(int studentId);
+	Observable<Void> deleteStudent(Transaction transaction, int studentId);
 }
