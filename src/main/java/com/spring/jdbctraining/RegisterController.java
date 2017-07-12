@@ -48,6 +48,7 @@ public class RegisterController {
         } else {
             studentImpl.saveStudent(student)
                     .doOnCompleted(() -> deferredResult.setResult(new ModelAndView("success")))
+                    .doOnError(e -> deferredResult.setErrorResult(e))
                     .subscribe();
         }
         return deferredResult;
