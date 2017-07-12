@@ -60,21 +60,18 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Observable<Student> createStudentsAndGetAllStudents() {
-        return getStudentObservable()
-                .toList().map(list -> list.size())
+        return addStudentAndGetAllStudents()
+                .count()
                 .doOnNext(c -> LOGGER.info("Got " + c + " students"))
                 .toCompletable().<Student>toObservable()
-                .concatWith(Observable.defer(() -> getStudentObservable()));
+                .concatWith(addStudentAndGetAllStudents());
     }
 
-    private Observable<Student> getStudentObservable() {
-        return transactionalObservable(transaction -> {
-            Observable<Student> firstStudent =
-                    studentDAO.saveStudent(transaction, newStudent())
-                            .<Student>toObservable()
-                            .concatWith(Observable.defer(() -> studentDAO.getAllStudents(transaction)));
-            return firstStudent;
-        });
+    private Observable<Student> addStudentAndGetAllStudents() {
+        return transactionalObservable(transaction ->
+                studentDAO.saveStudent(transaction, newStudent())
+                        .<Student>toObservable()
+                        .concatWith(studentDAO.getAllStudents(transaction)));
     }
 
     private Student newStudent() {
